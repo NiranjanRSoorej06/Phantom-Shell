@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PhantomShell</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090b10;--panel:#111621;--line:#273142;--ink:#e5e9f2;--muted:#99a5b8;--accent:#8bf0d1}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 70% 0,#15252b,var(--bg) 55%);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+    main{max-width:1100px;margin:auto;padding:32px 20px}.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:18px}
+    h1{font-size:24px;margin:0;letter-spacing:.04em;color:var(--accent)}.status{color:var(--muted);font-size:13px}.panel{margin-top:22px;padding:20px;background:#111621dd;border:1px solid var(--line);border-radius:12px}
+    h2{font-size:16px;margin:0 0 14px;color:var(--accent)}.event{display:grid;grid-template-columns:85px 1fr;gap:8px;padding:12px 0;border-top:1px solid var(--line)}.code{color:#ff9e9e}.ok{color:var(--accent)}pre{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);margin:5px 0 0;font-size:13px}button{background:#172b2c;color:var(--accent);border:1px solid #315c58;border-radius:6px;padding:7px 10px;margin:8px 6px 0 0;cursor:pointer}.action{padding:12px 0;border-top:1px solid var(--line)}
+  </style>
+</head>
+<body><main><header class="top"><h1>PHANTOMSHELL</h1><div id="status" class="status">Connecting to local investigator…</div></header>
+<section class="panel"><h2>Timeline</h2><div id="events">No captured events yet.</div></section>
+<section class="panel"><h2>Investigation</h2><div id="investigation">Select Analyze on a failure to ask the local model for hypotheses and read-only checks.</div><div id="actions"></div></section>
+<section class="panel"><h2>Memory</h2><div id="memories">No saved incidents yet.</div></section></main>
+<script>
+const token=new URLSearchParams(location.hash.slice(1)).get('t');
+const headers={Authorization:`Bearer ${token}`};
+async function refresh(){try{const [events,status,actions,memories,investigations]=await Promise.all([fetch('/api/events',{headers}),fetch('/api/status',{headers}),fetch('/api/actions',{headers}),fetch('/api/memories',{headers}),fetch('/api/investigations',{headers})]);if(!events.ok||!status.ok)throw Error('dashboard authentication failed');const rows=await events.json(),info=await status.json(),pending=await actions.json(),mem=await memories.json(),inv=await investigations.json();document.querySelector('#status').textContent=`${info.model} · ${info.inference} · ${info.network} · monitoring ${info.monitoring}`;document.querySelector('#events').innerHTML=rows.length?rows.map(e=>`<article class="event"><b class="${e.exit_code===0?'ok':'code'}">${e.exit_code}</b><div><strong>${escapeHtml(e.command)}</strong><pre>${escapeHtml(e.output_excerpt||e.note||'')}</pre></div></article>`).join(''):'No captured events yet.';document.querySelector('#investigation').textContent=inv.length?JSON.stringify(inv,null,2):'No investigations yet.';document.querySelector('#actions').innerHTML=pending.map(a=>`<article class="action"><b>${escapeHtml(a.tool)}</b><pre>${escapeHtml(a.args_json)}</pre><button onclick="approve('${a.id}')">Approve this read-only check</button><button onclick="reject('${a.id}')">Reject</button></article>`).join('');document.querySelector('#memories').innerHTML=mem.length?mem.map(m=>`<div class="action"><b>${escapeHtml(m.status)}</b> · ${escapeHtml(m.summary)} <button onclick="removeMemory('${m.id}')">Delete</button></div>`).join(''):'No saved incidents yet.'}catch(e){document.querySelector('#status').textContent=e.message}}
+async function post(path,data){const response=await fetch(path,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify(data)});if(!response.ok)throw Error(await response.text());return response.json()}
+async function approve(action_id){try{const result=await post('/api/approve',{action_id});document.querySelector('#investigation').textContent=JSON.stringify(result,null,2);refresh()}catch(e){document.querySelector('#investigation').textContent=e.message}}
+async function reject(action_id){await post('/api/reject',{action_id});refresh()}
+async function removeMemory(id){const response=await fetch(`/api/memory/${encodeURIComponent(id)}`,{method:'DELETE',headers});if(!response.ok)throw Error('delete failed');refresh()}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}refresh();setInterval(refresh,1500);
+</script></body></html>
