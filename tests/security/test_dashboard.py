@@ -22,6 +22,8 @@ def test_dashboard_auth_and_host_origin(tmp_path) -> None:
             assert (await client.get("/api/events")).status_code == 401
             headers = {"Authorization": "Bearer secret", "Origin": "https://evil.example"}
             assert (await client.get("/api/events", headers=headers)).status_code == 403
+            wrong_host = {"Authorization": "Bearer secret", "Host": "attacker.example:8765"}
+            assert (await client.get("/api/events", headers=wrong_host)).status_code == 403
             response = await client.get("/api/events", headers={"Authorization": "Bearer secret"})
             assert response.status_code == 200
             assert response.json()[0]["output_excerpt"] == "ERROR: fixture failure"

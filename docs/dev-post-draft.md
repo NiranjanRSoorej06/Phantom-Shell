@@ -20,7 +20,7 @@ TODO(owner): add a real screen recording and screenshots after recording both se
 
 ## Code
 
-TODO(owner): add the public repository URL. The workspace's root Git metadata is read-only here, so the root project has not been committed or pushed.
+TODO(owner): add the public repository URL. Local commits exist, but the repository has not been pushed from this workspace.
 
 ## How I Built It
 

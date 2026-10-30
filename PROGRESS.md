@@ -7,7 +7,7 @@
 - Observed result: Python 3.13.7; Git 2.56.0; ripgrep 15.2.0; Bash 5.3.20; Ollama 0.40.7; 9.1 GiB available RAM, no `nvidia-smi`; downloaded `gemma4:e4b`; local schema probe returned `{"ok": true}` in 20.5 s (including 18.2 s model load). Ollama reported `total_duration=20507089762`, `eval_count=6`.
 - Unverified assumptions: GPU unavailable or not NVIDIA; the probe tested `think:false` once only.
 - Claims now safe to publish: Gemma 4 E4B answered one schema-constrained JSON probe locally via Ollama.
-- Commit: blocked because `.git/index` is read-only in the provided workspace; `git add` failed with `Read-only file system`.
+- Commit: initially blocked in the sandbox; elevated write permission later created root commit `7f27c8e` on 2026-10-30 and correction commit `d14eaeb` so the demo fixture is tracked directly. `git status --short` was clean after the correction.
 
 ### T1 — Store + ingest  [DONE]
 - Time spent: not measured
@@ -61,7 +61,7 @@
 - Time spent: not measured
 - Files changed: `phantomshell/tools.py`, `phantomshell/policy.py`, `phantomshell/investigator.py`, `tests/security/test_tools.py`, `tests/unit/test_investigator.py`
 - Acceptance command: `python -m pytest tests/security/test_tools.py tests/unit/test_investigator.py -q`
-- Observed result: path traversal, absolute path, symlink escape, sensitive file, and unknown tool checks pass; approved tree inspection reached the fake Conclude path in a unit test.
+- Observed result: path traversal, absolute path, symlink escape, `.env`, `.git/config`, max-byte/depth/commit limits, and unknown tool checks pass; approved tree inspection reached the fake Conclude path in a unit test.
 - Unverified assumptions: broader malicious repository configurations and subprocess timeout behavior.
 - Claims now safe to publish: unknown tools and the tested path escapes are blocked before execution.
 
@@ -93,7 +93,7 @@
 - Time spent: not measured
 - Files changed: `phantomshell/brain.py`, `phantomshell/tools.py`, `phantomshell/server.py`, `tests/security/`
 - Acceptance command: `python -m pytest tests/unit tests/security -q`; live `ss -ltnp`; `curl` auth check.
-- Observed result: `22 passed`; listener verified on `127.0.0.1`; API without bearer token returned 401. Ollama-down capture continuation, malformed JSON twice, and an actual tool timeout were not exercised.
+- Observed result: `24 passed`; listener verified on `127.0.0.1`; API without bearer token returned 401; wrong Host/Origin checks pass. Ollama-down capture continuation, malformed JSON twice, and an actual tool timeout were not exercised.
 - Unverified assumptions: the remaining unrun security scenarios.
 - Claims now safe to publish: the tested injection fixture remains quoted untrusted data; the tested secret/path/auth protections pass.
 
@@ -109,7 +109,7 @@
 - Time spent: not measured
 - Files changed: `README.md`, `docs/architecture.md`, `docs/threat-model.md`, `docs/evaluation.md`, `docs/claims.md`, `docs/dev-post-draft.md`, `LICENSE`, `pyproject.toml`
 - Acceptance command: `python -m pytest tests/unit tests/security -q`; `ruff check phantomshell tests scripts`; fresh-clone selftest not run.
-- Observed result: 22 tests passed and Ruff reported `All checks passed!`; `python -m phantomshell.cli selftest` returned `Selftest passed: gemma4:e4b returned schema-valid JSON; redaction and fingerprint checks passed.` Clean-clone setup remains unverified. Root Git commits are blocked by read-only `.git` metadata.
+- Observed result: 24 tests passed and Ruff reported `All checks passed!`; `python -m phantomshell.cli selftest` returned `Selftest passed: gemma4:e4b returned schema-valid JSON; redaction and fingerprint checks passed.` Clean-clone setup remains unverified. Root commits were created with approved elevated access.
 - Unverified assumptions: clean-venv installation and completed challenge submission requirements.
 - Claims now safe to publish: only rows marked VERIFIED in `docs/claims.md`.
 
@@ -132,5 +132,5 @@
 ## OWNER QUESTIONS
 
 - TODO(owner): confirm preferred public repository URL and DEV handle before publishing.
-- TODO(owner): make the root `.git` directory writable or commit the completed project from a writable clone; all root `git add` operations fail with `Read-only file system`.
+- Root `.git` write access was granted for the implementation commits; the latest observed `git status --short` was clean.
 - The live DEV API `ends_at` timestamp appeared one day early; the [official Week 4 challenge page](https://dev.to/challenges/hacktoberfest-week4-2026-10-26) and its rules show the deadline as Oct 31, 2026 at 11:59 PM PDT, matching `plan.md`.

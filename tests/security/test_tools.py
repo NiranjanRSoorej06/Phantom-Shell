@@ -13,7 +13,7 @@ def test_path_escape_blocked(tmp_path) -> None:
     (root / "safe.txt").write_text("ok")
     (root / ".env").write_text("token=secret")
     (root / "escape").symlink_to(tmp_path / "outside")
-    for path in ("../outside", str(tmp_path / "outside"), ".env", "escape"):
+    for path in ("../outside", str(tmp_path / "outside"), ".env", ".git/config", "escape"):
         with pytest.raises(ToolBlocked):
             within_project(root, path)
 
@@ -32,6 +32,17 @@ def test_unknown_tool_blocked(tmp_path) -> None:
     assert authorize(store, "run_shell", {"cmd": "echo unsafe"}, True) is False
     assert store.rows("action_log")[0]["decision"] == "blocked"
     store.close()
+
+
+def test_tool_limits_are_enforced(tmp_path) -> None:
+    from phantomshell.investigator import _validate_tool_args
+
+    with pytest.raises(ToolBlocked):
+        _validate_tool_args("inspect_project_tree", {"depth": 4})
+    with pytest.raises(ToolBlocked):
+        _validate_tool_args("read_file_within_project", {"path": "src/main.py", "max_bytes": 20001})
+    with pytest.raises(ToolBlocked):
+        _validate_tool_args("get_recent_commits", {"n": 11})
 
 
 def test_prompt_injection_stays_inside_untrusted_data(tmp_path) -> None:

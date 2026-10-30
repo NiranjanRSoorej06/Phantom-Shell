@@ -16,3 +16,11 @@ def test_verifier_accepts_whitespace_normalized_quote() -> None:
         {"claim": "x", "evidence_id": "T1", "quote": "entry point not found"}], "next_steps": [], "narrative": ""}
     checked = verify_conclusion(result, {"T1": "ERROR: entry   point not found: src/app.py"})
     assert checked["verdict"] == "supported"
+
+
+def test_verifier_rejects_missing_evidence_id() -> None:
+    result = {"verdict": "supported", "cause": "x", "supporting": [
+        {"claim": "x", "evidence_id": "missing", "quote": "present"}], "next_steps": [], "narrative": ""}
+    checked = verify_conclusion(result, {"E1": "present"})
+    assert checked["verdict"] == "inconclusive"
+    assert checked["supporting"] == []
