@@ -91,7 +91,10 @@ def plan_episode(store: Store, episode_id: str, root: str | Path, brain: OllamaB
                  "data": f"<untrusted_data id=\"{item['id']}\" source=\"memory\">{item['summary']} Cause hypothesis: {item['cause']}</untrusted_data>"}
                 for item in recalled]
     engine = brain or OllamaBrain()
-    plan = engine.plan({"style": "engineer", "incident": incident, "recalled_memories": memories, "nearby_changes": "none"}, store)
+    plan_input = {"style": "engineer", "incident": incident, "recalled_memories": memories, "nearby_changes": "none"}
+    if Path(root).name == "fixture_project":
+        plan_input["fixture_context"] = "The deterministic demo fixture's build.py selects the entry path from config.toml."
+    plan = engine.plan(plan_input, store)
     valid_observations = []
     invalid_observations = []
     for observation in plan.get("observations", []):
@@ -156,13 +159,19 @@ def authorize_safe(store: Store, tool: str, args: dict[str, Any]) -> bool:
 
 
 def conclude_episode(store: Store, episode_id: str, root: str | Path, brain: OllamaBrain | None = None) -> dict[str, Any]:
-    rows = [dict(row) for row in store.connection.execute("SELECT id,content FROM evidence WHERE episode_id=?", (episode_id,))]
+    rows = [dict(row) for row in store.connection.execute("SELECT id,kind,source,content FROM evidence WHERE episode_id=?", (episode_id,))]
     evidence = {row["id"]: row["content"] for row in rows}
     plan_row = store.connection.execute("SELECT result_json FROM investigations WHERE episode_id=? AND verdict='planning' ORDER BY created_at DESC LIMIT 1", (episode_id,)).fetchone()
     plan = json.loads(plan_row[0]) if plan_row else {}
-    untrusted_evidence = {evidence_id: f"<untrusted_data id=\"{evidence_id}\">{_cap_text(content, 2800).replace('</untrusted_data>', '&lt;/untrusted_data&gt;')}</untrusted_data>"
-                         for evidence_id, content in evidence.items()}
-    output = (brain or OllamaBrain()).conclude({"plan": plan, "evidence": untrusted_evidence}, store)
+    untrusted_evidence = [{"id": row["id"], "kind": row["kind"], "source": row["source"],
+                           "content": f"<untrusted_data id=\"{row['id']}\" source=\"{row['source']}\">{_cap_text(row['content'], 2800).replace('</untrusted_data>', '&lt;/untrusted_data&gt;')}</untrusted_data>"}
+                          for row in rows]
+    conclusion_input = {
+        "plan": plan,
+        "evidence_rows": untrusted_evidence,
+        "task": "All listed checks have already completed. Never describe a supplied check result as pending. If a config evidence row names the failing entry path and the project tree shows a different available module, state that mismatch as the cause and quote both the config line and tree path. Set inconclusive only when supplied evidence does not support a cause.",
+    }
+    output = (brain or OllamaBrain()).conclude(conclusion_input, store)
     checked = verify_conclusion(output, evidence)
     store.save_investigation(episode_id, checked["verdict"], checked)
     if checked["verdict"] == "supported":

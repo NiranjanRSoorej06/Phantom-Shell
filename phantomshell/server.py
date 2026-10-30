@@ -62,7 +62,7 @@ def create_app(db_path: str | Path, token: str | None = None, port: int = 8765) 
     async def status() -> dict[str, str]:
         import os
         return {"model": os.environ.get("PHANTOM_MODEL", "gemma4:e4b"), "inference": "local inference ✓",
-                "network": "no network calls", "monitoring": "on"}
+                "network": "no external calls (Ollama loopback only)", "monitoring": "on"}
 
     @app.get("/api/actions")
     async def actions() -> list[dict]:

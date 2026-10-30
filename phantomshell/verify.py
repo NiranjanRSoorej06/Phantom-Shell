@@ -24,9 +24,10 @@ def verify_conclusion(result: dict[str, Any], evidence: dict[str, str]) -> dict[
     if verdict == "supported" and not verified:
         verdict = "inconclusive"
     cause = result.get("cause", "")
+    narrative = result.get("narrative", "")
     if verdict == "inconclusive":
         cause = "Insufficient verified evidence to support a cause."
-    narrative = result.get("narrative", "")
+        narrative = ""
     if any(re.search(r"(?:[A-Za-z]:)?[/\\][\w./\\-]+|\b\d+\b|\b[0-9a-f]{7,40}\b", narrative, re.IGNORECASE) and
            match.group(0) not in " ".join(evidence.values()) for match in re.finditer(r"(?:[A-Za-z]:)?[/\\][\w./\\-]+|\b\d+\b|\b[0-9a-f]{7,40}\b", narrative, re.IGNORECASE)):
         narrative = ""

@@ -24,3 +24,11 @@ def test_verifier_rejects_missing_evidence_id() -> None:
     checked = verify_conclusion(result, {"E1": "present"})
     assert checked["verdict"] == "inconclusive"
     assert checked["supporting"] == []
+
+
+def test_inconclusive_result_suppresses_cause_like_narrative() -> None:
+    result = {"verdict": "inconclusive", "cause": "maybe wrong", "supporting": [],
+              "next_steps": [], "narrative": "The config caused this failure."}
+    checked = verify_conclusion(result, {})
+    assert checked["cause"] == "Insufficient verified evidence to support a cause."
+    assert checked["narrative"] == ""

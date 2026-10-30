@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import time
@@ -137,8 +138,16 @@ class OllamaBrain:
                 {"name": "get_recent_commits", "purpose": "Read recent commits and renames.", "exact_args_schema": {"n": "optional integer from 1 to 10", "stat": "optional boolean"}},
                 {"name": "git_log_for_path", "purpose": "Read history for one safe project path.", "exact_args_schema": {"path": "required string", "n": "optional integer from 1 to 10"}},
             ]}
-        data = {**data, "task": "Request at least one read-only check from TOOL CATALOG when a check can distinguish the hypotheses. Never return an empty requested_tools list just to avoid deciding. In each requested tool, args must contain only that tool's exact_args_schema property names and must match their types. Put all explanation in why. Never put purpose or description inside args."}
-        return self.call("plan", data, PLAN_SCHEMA, store)
+        task = "Request enough distinct read-only checks for a human to verify the cause; do not rely on a project tree alone when file contents determine the entry path. For an entry-point-not-found failure, request a tree check and read the build/config file that chooses the entry point when its path is known. If a recalled memory says watched files changed or the incident suggests a rename, request recent Git history too. Never return an empty requested_tools list just to avoid deciding. In each requested tool, args must contain only that tool's exact_args_schema property names and must match their types. Put all explanation in why. Never put purpose or description inside args."
+        schema = copy.deepcopy(PLAN_SCHEMA)
+        incident_text = json.dumps(data.get("incident", []), ensure_ascii=False).lower()
+        if "entry point not found" in incident_text:
+            task += " For this entry-point failure, request at least three distinct checks: inspect the project tree, read the build script named by the command, and read the configuration file that provides the entry path when it can be inferred."
+            if "fixture_context" in data:
+                task += " The provided fixture context names the config file; you must include read_file_within_project for that exact path instead of substituting a search."
+            schema["properties"]["requested_tools"]["minItems"] = 3
+        data = {**data, "task": task}
+        return self.call("plan", data, schema, store)
 
     def conclude(self, data: dict[str, Any], store=None) -> dict[str, Any]:
         return self.call("conclude", data, CONCLUDE_SCHEMA, store)

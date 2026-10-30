@@ -8,7 +8,7 @@ from phantomshell.tools import ToolBlocked
 
 class FakeBrain:
     def conclude(self, data, store):
-        evidence_id = next(iter(data["evidence"]))
+        evidence_id = data["evidence_rows"][0]["id"]
         return {"verdict": "supported", "cause": "The expected file is absent.",
                 "supporting": [{"claim": "The build command failed.", "evidence_id": evidence_id,
                                 "quote": "python build.py"}], "ruled_out": [], "next_steps": ["Check the entry path."],

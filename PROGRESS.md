@@ -69,16 +69,16 @@
 - Time spent: not measured
 - Files changed: `phantomshell/investigator.py`, `phantomshell/server.py`, `phantomshell/static/index.html`, `phantomshell/verify.py`, `tests/unit/test_investigator.py`
 - Acceptance command: approved `inspect_project_tree` proposal for the captured fixture event, followed by live Gemma Conclude; `python -m pytest tests/unit/test_investigator.py -q`.
-- Observed result: Gemma returned `inconclusive` with a verified quote (`ERROR: entry point not found: src/app.py`). It also wrote an unsupported cause (“project tree inspection is pending”); verifier was tightened to replace causes on inconclusive results, and the unit suite passes after that change. A new live Conclude after the verifier change was not run.
+- Observed result: Gemma returned `inconclusive` after approved tree, build-file, and config checks. Four quotes matched stored evidence, but the live model still did not support a cause. Verifier now clears cause-like narrative text for inconclusive verdicts. Unit coverage was added; rerun recorded below.
 - Unverified assumptions: the live model may still choose insufficient checks for a fixture root cause.
-- Claims now safe to publish: the tested real Conclude was inconclusive and had a verifiable supporting quote; unsupported cause text is now suppressed by deterministic verification.
+- Claims now safe to publish: the real Plan requested relevant read-only checks; the live Conclude remained inconclusive despite quote-verified evidence, and deterministic verification suppresses cause-like text in that case.
 
-### T9 — Memory save + resolution  [DONE]
+### T9 — Memory save + resolution  [BLOCKED]
 - Time spent: not measured
 - Files changed: `phantomshell/memory.py`, `phantomshell/episodes.py`, `tests/unit/test_memory.py`, `tests/unit/test_investigator.py`
 - Acceptance command: `python -m pytest tests/unit/test_memory.py tests/unit/test_investigator.py -q`
 - Observed result: supported fake Conclude creates a proposed memory; a same-session, same-family success promotes it to verified. Memory persists in SQLite.
-- Unverified assumptions: full model-generated supported investigation in the real fixture.
+- Unverified assumptions: full model-generated supported investigation in the real fixture; the live run remained inconclusive, so no live memory was proposed or promoted.
 - Claims now safe to publish: proposed memory promotion and persistence pass the unit scenario.
 
 ### T10 — Recall + staleness  [BLOCKED]
@@ -109,7 +109,7 @@
 - Time spent: not measured
 - Files changed: `README.md`, `docs/architecture.md`, `docs/threat-model.md`, `docs/evaluation.md`, `docs/claims.md`, `docs/dev-post-draft.md`, `LICENSE`, `pyproject.toml`
 - Acceptance command: `python -m pytest tests/unit tests/security -q`; `ruff check phantomshell tests scripts`; fresh-clone selftest not run.
-- Observed result: 24 tests passed and Ruff reported `All checks passed!`; `python -m phantomshell.cli selftest` returned `Selftest passed: gemma4:e4b returned schema-valid JSON; redaction and fingerprint checks passed.` Clean-clone setup remains unverified. Root commits were created with approved elevated access.
+- Observed result: `25 passed`; Ruff reported `All checks passed!`; PTY smoke returned `PTY/dashboard OK: events live through authenticated API; echo=0, false=1, Ctrl-C=130, resize=40x100, markers hidden`; `python -m phantomshell.cli selftest` returned `Selftest passed: gemma4:e4b returned schema-valid JSON; redaction and fingerprint checks passed.` Clean-clone setup remains unverified. Root commits were created with approved elevated access.
 - Unverified assumptions: clean-venv installation and completed challenge submission requirements.
 - Claims now safe to publish: only rows marked VERIFIED in `docs/claims.md`.
 
